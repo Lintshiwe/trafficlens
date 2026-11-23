@@ -1,4 +1,4 @@
-﻿# TrafficLens — live vehicle counter
+﻿# TrafficLens  -  live vehicle counter
 
 A complete, self-hosted car counter: **Ultralytics YOLO11** on the backend, a mobile-first web
 frontend, and real-time counting from any phone or laptop camera.
@@ -190,9 +190,9 @@ It prints the selected device and average latency/FPS. On this PC the expected b
 
 ## API
 
-- `GET /api/status` — readiness, error, backend, model, active sessions
-- `GET /api/health` — simple health check
-- `WS /ws/detect` — binary JPEG frames in; JSON results out
+- `GET /api/status`  -  readiness, error, backend, model, active sessions
+- `GET /api/health`  -  simple health check
+- `WS /ws/detect`  -  binary JPEG frames in; JSON results out
 
 WebSocket protocol:
 
@@ -251,23 +251,23 @@ car-counter/
 
 ## Troubleshooting
 
-**Phone cannot reach the server** — ensure phone and PC are on the same network, use the LAN IP
+**Phone cannot reach the server**  -  ensure phone and PC are on the same network, use the LAN IP
 (not `localhost`), and allow Python on private networks in Windows Firewall. Guest/isolated
 Wi-Fi networks often block device-to-device traffic.
 
-**Camera permission blocked / no prompt** — the page must be HTTPS (or localhost). Accept the
+**Camera permission blocked / no prompt**  -  the page must be HTTPS (or localhost). Accept the
 certificate, reload, and allow camera access in site settings.
 
-**`Address already in use`** — another server is on port 8443: `run.py --port 9443`.
+**`Address already in use`**  -  another server is on port 8443: `run.py --port 9443`.
 
-**Model download/export fails** — check internet access and free disk space, then delete the
+**Model download/export fails**  -  check internet access and free disk space, then delete the
 half-written file in `models/` and start again. Set `CAR_COUNTER_DEVICE=cpu` to skip OpenVINO.
 
-**GPU not used** — run `scripts\benchmark.py`. If OpenVINO reports no GPU, update the Intel
+**GPU not used**  -  run `scripts\benchmark.py`. If OpenVINO reports no GPU, update the Intel
 graphics driver. You can force the backend with `CAR_COUNTER_DEVICE=xpu`; remove the exported
 folder in `models/` to force a fresh OpenVINO export.
 
-**Low FPS** — close other GPU-heavy apps, switch the phone to a lower camera resolution, lower
+**Low FPS**  -  close other GPU-heavy apps, switch the phone to a lower camera resolution, lower
 `CAR_COUNTER_IMGSZ`, or use a smaller model. The server processes one frame at a time per
 camera, so latency never snowballs.
 
