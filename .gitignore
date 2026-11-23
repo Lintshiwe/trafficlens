@@ -1,0 +1,20 @@
+.venv/
+.venv-linux/
+.vagrant/
+__pycache__/
+*.py[cod]
+install.log
+*.log
+
+# Model artifacts (re-downloaded/exported automatically)
+models/*.pt
+models/*_openvino_model/
+
+# Local HTTPS certificate
+certs/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

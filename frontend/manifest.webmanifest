@@ -1,0 +1,19 @@
+{
+  "name": "TrafficLens — Live Vehicle Counter",
+  "short_name": "TrafficLens",
+  "description": "Real-time vehicle counting with Ultralytics YOLO and your phone camera.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

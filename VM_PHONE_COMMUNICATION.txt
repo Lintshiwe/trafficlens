@@ -1,0 +1,168 @@
+PHONE <-> VM COMMUNICATION BEHAVIOR
+==================================
+
+WHAT THIS DESCRIBES
+-------------------
+This describes only how the phone, its camera, and the VM communicate while
+the vehicle counter is running. It does not describe setup, installation, or
+the internal technology.
+
+WHO OWNS THE CAMERA
+-------------------
+The camera belongs to the phone. The VM never opens, controls, or watches the
+camera directly. The phone captures what the camera sees and sends still
+pictures to the VM for analysis. The VM sends back a description of what it
+saw, and the phone draws that description over its own live preview.
+
+WHAT THE PHONE DOES
+-------------------
+- Keeps one live connection open to the VM for the whole camera session.
+- Captures a still picture from its camera and sends it to the VM.
+- Waits for the VM's answer before sending the next picture.
+- Draws boxes, vehicle labels, and counts over its own preview.
+- Lets the user start, stop, reset, change sensitivity, and switch cameras.
+
+WHAT THE VM DOES
+----------------
+- Waits for the phone to connect.
+- Tells the phone when it is getting ready and when it is ready.
+- Receives one picture at a time, identifies vehicles, follows each vehicle
+  from picture to picture, and keeps the running totals.
+- Sends back a short description of that picture: what vehicles are visible,
+  where they are, what type they are, and the totals so far.
+- Never sends video back. It sends descriptions only.
+
+AT A GLANCE
+-----------
+Phone: start camera
+Phone -> VM: I am starting a camera session
+VM -> Phone: getting ready
+VM -> Phone: ready
+Phone -> VM: picture 1
+VM -> Phone: vehicles seen + totals + timing
+Phone -> VM: picture 2
+VM -> Phone: vehicles seen + totals + timing
+...
+Phone -> VM: reset
+VM -> Phone: totals cleared
+Phone -> VM: stop
+VM: ends the session
+
+OPENING A SESSION
+-----------------
+1. The user starts the camera on the phone.
+2. The phone opens a secure connection to the VM and keeps it open.
+3. The VM answers that it is getting ready, then sends a ready message.
+4. Until ready arrives, the phone shows a connecting or warming-up state.
+   The phone's own camera preview may already be visible; the boxes and
+   counts begin only after the VM is ready.
+5. When ready, the phone sends its chosen sensitivity setting to the VM.
+
+SENDING PICTURES
+----------------
+- The phone sends one still picture at a time.
+- It does not send the next picture until the previous one has been answered.
+  This prevents a backlog when the VM is slower than the camera.
+- The local preview stays smooth because it comes straight from the camera.
+  Only the boxes and counts slow down when the VM is busy.
+- The phone aims for a steady stream of up to about 25 pictures per second.
+  The real rate is whatever the phone-to-VM round trip can support. In this
+  VM it is about 9 to 10 pictures per second.
+- While the page is hidden or the screen is off, the phone stops sending.
+  It resumes when the page is visible again.
+- When the user switches cameras, the phone stops using the old camera and
+  continues with the new one. The connection stays open and counting
+  continues.
+
+WHAT COMES BACK FOR EACH PICTURE
+--------------------------------
+The VM's answer describes the picture it has just analyzed:
+- every vehicle it sees in that picture: its type, its tracking number, its
+  confidence, and its position in the picture;
+- how many vehicles of each type are visible right now;
+- the running total for each type since the session started;
+- the overall total for the session;
+- how long the VM took to analyze the picture;
+- how many pictures per second are currently being answered;
+- the size of the picture, so the phone can line up the boxes correctly.
+
+The phone uses this answer to draw the boxes and labels and to update the
+counters. The VM never returns an annotated picture or video.
+
+COUNTING BEHAVIOR
+-----------------
+- A vehicle is added to the session total the first time the VM sees and
+  follows it.
+- A vehicle that stays in view is not counted again on later pictures.
+- "In view now" rises and falls with what is visible in the current picture.
+- A vehicle that leaves and later returns may be treated as a new vehicle and
+  counted again.
+- Totals belong to one camera session. Stopping and restarting the camera
+  starts a new session with zero totals.
+
+CONTROLS FROM THE PHONE
+-----------------------
+- Reset: the phone clears its own display and asks the VM to clear the
+  session totals. The VM confirms with zeroed totals. The camera keeps
+  running.
+- Sensitivity: the phone tells the VM how strict detection should be. The VM
+  applies the new setting to later pictures. Totals already counted are kept.
+- Switch camera: the phone changes which camera it uses. The connection stays
+  open and the totals continue.
+- Stop: the phone closes the connection and releases the camera. The VM ends
+  the session and frees its capacity for another phone.
+
+READY, BUSY, AND ERRORS
+-----------------------
+- If the VM is not ready, it tells the phone to wait. The phone shows a
+  connecting or warming-up state.
+- If the VM is already serving its maximum number of phones, it refuses the
+  new session and tells the phone that it is busy. The phone shows the reason.
+- If one picture cannot be read or is too large, the VM rejects only that
+  picture and keeps the session alive. The phone continues with the next one.
+- If the VM cannot start its analysis at all, it sends a fatal error. The
+  phone stops the camera and shows that the service is unavailable.
+
+RECONNECTION
+------------
+- If the connection drops while the camera is running, the phone shows that
+  it is reconnecting and tries again automatically, waiting a little longer
+  after each attempt.
+- When it reconnects, the VM starts a fresh session. The phone's totals begin
+  again from zero.
+- If the user stopped the camera deliberately, the phone does not reconnect.
+
+MULTIPLE PHONES
+---------------
+- Each phone has its own connection, its own detections, and its own totals.
+- The VM can serve several phones at the same time up to its limit. Each phone
+  sees only its own counts.
+- When the limit is reached, an additional phone is told that the VM is busy.
+
+WHAT THE USER SEES
+------------------
+- The phone's own camera preview, always live and local.
+- Boxes and vehicle labels drawn over the preview as answers arrive.
+- A live, connecting, or off indicator.
+- The running total, the count for each vehicle type, and the number in view.
+- The analysis delay, the pictures-per-second rate, the picture size, and the
+  type of compute in use.
+- A message when the security warning must be accepted, when the VM is busy,
+  or when the connection is lost.
+
+PRIVACY AND BOUNDARIES
+----------------------
+- The VM never opens or controls the phone's camera.
+- The phone sends still pictures for analysis; it does not send a video feed.
+- The VM sends descriptions and counts back; it does not send video.
+- The VM does not store the pictures or keep a recording.
+- Both sides must be able to reach each other over the network.
+- The connection is encrypted. The first time, the phone shows a security
+  warning that must be accepted before the camera can start.
+
+END OF SESSION
+--------------
+- The phone closes the connection when the user stops the camera or leaves the
+  page.
+- The VM ends the session, frees the capacity, and discards the session totals.
+- Starting again creates a new session and a new count.
