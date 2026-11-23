@@ -24,6 +24,7 @@ FastAPI --> YOLO11 + ByteTrack --> counts + detections
 - Server-side inference, client-side canvas overlay (low bandwidth)
 - FPS, latency, input resolution, and active compute backend shown in the UI
 - Adjustable confidence, reset counter, fullscreen, screen wake-lock
+- Screen capture mode: analyze whatever is shown on the monitor (no camera needed)
 - Auto-reconnecting WebSocket and automatic HTTPS certificate for phone cameras
 
 ## GPU support
@@ -97,10 +98,14 @@ a minute on the first run. Weights and the exported model live in `models/`.
 
 ## Using the app
 
+Screen mode runs on the machine whose screen you want to capture. Use the Windows host
+(not the Vagrant VM) so the GPU is available, and keep the app page open while it runs.
+
 | Control | What it does |
 | --- | --- |
 | **Start camera** | Requests camera permission and opens the AI stream |
 | **Switch camera** | Toggles rear/front camera (`facingMode`) |
+| **Screen** | Captures the whole monitor (pick "Entire Screen" in the browser prompt) |
 | **Reset** | Starts a new counting session (does not stop the stream) |
 | **Fullscreen** | Expands the video area |
 | **Detection confidence** | Higher = fewer detections; lower = more sensitive |

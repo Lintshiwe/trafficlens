@@ -28,6 +28,8 @@
     fpsBadge: $("fpsBadge"),
     startBtn: $("startBtn"),
     startLabel: $("startLabel"),
+    screenBtn: $("screenBtn"),
+    screenLabel: $("screenLabel"),
     switchBtn: $("switchBtn"),
     resetBtn: $("resetBtn"),
     fullBtn: $("fullBtn"),
@@ -60,6 +62,7 @@
     reconnectTimer: null,
     reconnectAttempt: 0,
     facing: "environment",
+    mode: "camera",
     detections: [],
     counts: emptyCounts(),
     current: emptyCounts(),
@@ -171,6 +174,47 @@
     await els.video.play().catch(() => {});
     if (!els.video.videoWidth) await waitForEvent(els.video, "loadedmetadata");
     resizeOverlay();
+  }
+
+  async function openScreen() {
+    stopStream();
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      throw new Error("Unsupported");
+    }
+
+    const constraints = {
+      audio: false,
+      video: {
+        displaySurface: "monitor",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 },
+      },
+    };
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+    } catch (err) {
+      if (err && (err.name === "OverconstrainedError" || err.name === "TypeError")) {
+        stream = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: true });
+      } else {
+        throw err;
+      }
+    }
+
+    state.stream = stream;
+    els.video.srcObject = stream;
+    await els.video.play().catch(() => {});
+    if (!els.video.videoWidth) await waitForEvent(els.video, "loadedmetadata");
+    resizeOverlay();
+
+    for (const track of stream.getVideoTracks()) {
+      track.onended = () => {
+        if (state.running && state.mode === "screen") stopCamera();
+      };
+    }
   }
 
   function stopStream() {
@@ -368,7 +412,7 @@
     releaseWakeLock();
     setStatus("error", "Unavailable");
     setPlaceholder("AI unavailable", message);
-    updateStartButton();
+    updateButtons();
     els.fpsBadge.textContent = "0 FPS";
   }
 
@@ -631,14 +675,23 @@
 
   // ------------------------------------------------------------- start/stop
 
-  function updateStartButton() {
-    els.startBtn.classList.toggle("is-stop", state.running);
-    els.startLabel.textContent = state.running
+  function updateButtons() {
+    const isCamera = state.mode === "camera";
+    const isScreen = state.mode === "screen";
+
+    els.startBtn.classList.toggle("is-stop", state.running && isCamera);
+    els.startLabel.textContent = state.running && isCamera
       ? "Stop camera"
-      : state.starting
+      : state.starting && isCamera
         ? "Starting…"
         : "Start camera";
-    els.startBtn.disabled = state.starting;
+    els.startBtn.disabled = state.starting || (state.running && !isCamera);
+
+    els.screenBtn.classList.toggle("is-stop", state.running && isScreen);
+    els.screenLabel.textContent = state.running && isScreen ? "Stop" : "Screen";
+    els.screenBtn.disabled = state.starting || (state.running && !isScreen);
+
+    els.switchBtn.style.display = isScreen ? "none" : "";
   }
 
   async function startCamera() {
@@ -648,11 +701,11 @@
     state.responseTimes = [];
     els.fpsBadge.textContent = "0 FPS";
     clearAlert();
-    updateStartButton();
+    updateButtons();
 
     if (!cameraContextOk()) {
       state.starting = false;
-      updateStartButton();
+      updateButtons();
       const text =
         "Phone cameras require a secure HTTPS connection. Open the https:// address printed in the terminal (accept the certificate warning).";
       showAlert(text);
@@ -663,7 +716,7 @@
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       state.starting = false;
-      updateStartButton();
+      updateButtons();
       showAlert("This browser does not support camera access.");
       setPlaceholder("Browser unsupported", "Use Chrome, Safari, Edge, or Firefox.");
       setStatus("error", "Unsupported");
@@ -674,9 +727,10 @@
     setPlaceholder("Starting camera…", "Allow camera access when your browser asks.");
 
     try {
+      state.mode = "camera";
       await openCamera();
       state.running = true;
-      updateStartButton();
+      updateButtons();
       document.body.classList.add("camera-live");
       connectSocket();
       startPump();
@@ -696,7 +750,68 @@
       releaseWakeLock();
     } finally {
       state.starting = false;
-      updateStartButton();
+      updateButtons();
+    }
+  }
+
+  async function startScreen() {
+    if (state.starting) return;
+    state.starting = true;
+    state.fatal = false;
+    state.responseTimes = [];
+    els.fpsBadge.textContent = "0 FPS";
+    clearAlert();
+    updateButtons();
+
+    if (!cameraContextOk()) {
+      state.starting = false;
+      updateButtons();
+      const text =
+        "Screen capture requires a secure HTTPS connection. Open the https:// address printed in the terminal.";
+      showAlert(text);
+      setPlaceholder("HTTPS required", text);
+      setStatus("error", "HTTPS required");
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      state.starting = false;
+      updateButtons();
+      showAlert("This browser does not support screen capture. Use Chrome or Edge on a desktop.");
+      setPlaceholder("Browser unsupported", "Use a desktop browser with screen capture support.");
+      setStatus("error", "Unsupported");
+      return;
+    }
+
+    setStatus("connecting", "Starting screen capture…");
+    setPlaceholder("Starting screen capture…", "Choose Entire Screen in the browser prompt.");
+
+    try {
+      state.mode = "screen";
+      await openScreen();
+      state.running = true;
+      updateButtons();
+      document.body.classList.add("camera-live");
+      connectSocket();
+      startPump();
+      requestWakeLock();
+      if (!state.ready) {
+        setStatus("connecting", "Connecting to the AI…");
+        setPlaceholder("Connecting to the AI…", "The model is loading onto the compute device.");
+      }
+    } catch (err) {
+      const message = err && err.message ? err.message : "Could not start screen capture.";
+      showAlert(message === "Unsupported" ? "This browser does not support screen capture." : message);
+      setPlaceholder("Capture unavailable", message);
+      setStatus("error", "Capture error");
+      state.running = false;
+      state.mode = "camera";
+      stopStream();
+      closeSocket();
+      releaseWakeLock();
+    } finally {
+      state.starting = false;
+      updateButtons();
     }
   }
 
@@ -716,7 +831,7 @@
     setStatus("idle", "Camera off");
     setPlaceholder("Camera is off", "Tap Start camera and point your phone at the road.");
     clearAlert();
-    updateStartButton();
+    updateButtons();
   }
 
   async function switchCamera() {
@@ -786,12 +901,16 @@
       /* the WebSocket will report real errors */
     }
 
-    updateStartButton();
+    updateButtons();
   }
 
   els.startBtn.addEventListener("click", () => {
     if (state.running) stopCamera();
     else startCamera();
+  });
+  els.screenBtn.addEventListener("click", () => {
+    if (state.running && state.mode === "screen") stopCamera();
+    else if (!state.running || state.mode !== "screen") startScreen();
   });
   els.switchBtn.addEventListener("click", switchCamera);
   els.resetBtn.addEventListener("click", requestReset);
