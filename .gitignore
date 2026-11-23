@@ -1,6 +1,7 @@
 .venv/
 .venv-linux/
 .vagrant/
+VM_PHONE_COMMUNICATION.txt
 __pycache__/
 *.py[cod]
 install.log

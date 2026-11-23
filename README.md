@@ -97,7 +97,7 @@ URLs:
 vagrant ssh -c "journalctl -u trafficlens -n 40 --no-pager"
 ```
 
-Look for the `Your phone` line (usually `https://10.0.24.x:8443`). The VM also has a bridged
+Look for the `Your phone` line (the bridged LAN address). The VM also has a bridged
 adapter specifically so the phone can bypass the Windows firewall.
 
 > **GPU note:** VirtualBox cannot pass the Intel UHD 770 into the guest. The Vagrant VM uses
